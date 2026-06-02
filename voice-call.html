@@ -2440,7 +2440,10 @@ function createBoucleTexture(baseColor) {
 // ================================================================
 function initThreeScene() {
     const container = document.getElementById('three-container');
-    if (!container || typeof THREE === 'undefined') return;
+    if (!container || typeof THREE === 'undefined') {
+        console.error('three-container not found or THREE not loaded');
+        return;
+    }
 
     // 清理旧场景
     if (threeRenderer) {
@@ -2449,15 +2452,13 @@ function initThreeScene() {
         threeRenderer = null;
     }
 
-    if (container.clientWidth === 0 || container.clientHeight === 0) {
-        setTimeout(initThreeScene, 100);
-        return;
-    }
+    // Use container dimensions or default size
+    const w = container.clientWidth || 800;
+    const h = container.clientHeight || 600;
 
     threeScene = new THREE.Scene();
     threeScene.background = new THREE.Color(0xf4f4f4);
 
-    const w = container.clientWidth, h = container.clientHeight;
     threeCamera = new THREE.PerspectiveCamera(40, w / h, 0.1, 1000);
     threeCamera.position.set(0, 4, 25);
 
@@ -2469,10 +2470,11 @@ function initThreeScene() {
     threeRenderer.toneMappingExposure = 1.05;
     container.appendChild(threeRenderer.domElement);
 
-    if (typeof OrbitControls !== 'undefined') {
-        threeControls = new OrbitControls(threeCamera, threeRenderer.domElement);
-    } else if (typeof THREE.OrbitControls !== 'undefined') {
+    if (typeof THREE !== 'undefined' && typeof THREE.OrbitControls === 'function') {
         threeControls = new THREE.OrbitControls(threeCamera, threeRenderer.domElement);
+    } else {
+        console.warn('OrbitControls not available');
+        threeControls = null;
     }
     if (threeControls) {
         threeControls.enableDamping = true;
@@ -2530,8 +2532,10 @@ function animateThree() {
 //  3D 家具加载
 // ================================================================
 function initFurniture3D(furnitureId) {
+    console.log('initFurniture3D called with:', furnitureId);
     const furniture = FURNITURE_LIBRARY.find(f => f.id === furnitureId);
     if (!furniture) { console.error('Furniture not found:', furnitureId); return; }
+    console.log('Furniture found:', furniture.name, furniture.params);
 
     selectedFurnitureId = furnitureId;
 
@@ -2565,7 +2569,13 @@ function initFurniture3D(furnitureId) {
 
 function buildFurnitureParamsUI(furniture) {
     const container = document.getElementById('furniture-3d-params');
-    let html = '';
+    if (!container) { console.error('furniture-3d-params container not found'); return; }
+    let html = '<h4>参数调整</h4>';
+    if (!furniture || !furniture.params) {
+        html += '<p style="color:#999">参数加载中...</p>';
+        container.innerHTML = html;
+        return;
+    }
     const paramNames = {
         seatHeight: { label: '座高', min: 0.3, max: 0.6, step: 0.01, unit: 'm' },
         seatWidth: { label: '座宽', min: 0.5, max: 1.2, step: 0.01, unit: 'm' },
@@ -2620,6 +2630,7 @@ function rebuildFurnitureModel() {
 
 function buildFurnitureColorUI(furniture) {
     const container = document.getElementById('furniture-colors');
+    if (!container) return;
     const colors = [
         { color: '#83929e', label: '冷灰蓝' },
         { color: '#B28C56', label: '暖棕色' },
