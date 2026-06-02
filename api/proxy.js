@@ -7,7 +7,14 @@ export const config = {
 
 export default async function handler(request) {
   try {
-    const body = await request.json();
+    const contentType = request.headers.get('content-type') || '';
+    let body;
+    if (contentType.includes('application/json')) {
+      body = await request.json();
+    } else {
+      body = JSON.parse(await request.text());
+    }
+
     const response = await fetch(DOUBAO_API, {
       method: 'POST',
       headers: {
@@ -16,13 +23,18 @@ export default async function handler(request) {
       },
       body: JSON.stringify(body),
     });
+
     const data = await response.json();
+
     return new Response(JSON.stringify(data), {
       status: response.status,
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
+    return new Response(JSON.stringify({
+      error: err.message,
+      detail: 'Proxy failed to process request'
+    }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });

@@ -2,13 +2,22 @@ const IMAGE_API = 'https://ark.cn-beijing.volces.com/api/v3/images/generations';
 const DOUBAO_KEY = process.env.DOUBAO_KEY || 'ark-709df38e-1e1e-45eb-b1bf-9ff817332a79-0cd1e';
 
 export const config = {
-  runtime: 'edge',
-  maxDuration: 60,
+  runtime: 'nodejs',
+  maxDuration: 300,
 };
 
 export default async function handler(request) {
   try {
     const body = await request.json();
+
+    console.log('Image API Request:', JSON.stringify({
+      model: body.model,
+      promptLen: body.prompt?.length,
+      hasImage: !!body.image,
+      imageSize: body.image ? body.image.length : 0,
+      size: body.size,
+    }));
+
     const response = await fetch(IMAGE_API, {
       method: 'POST',
       headers: {
@@ -17,13 +26,23 @@ export default async function handler(request) {
       },
       body: JSON.stringify(body),
     });
+
     const data = await response.json();
+
+    if (!response.ok) {
+      console.error('Image API Error:', JSON.stringify(data, null, 2));
+    }
+
     return new Response(JSON.stringify(data), {
       status: response.status,
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
+    console.error('Proxy error:', err.message);
+    return new Response(JSON.stringify({
+      error: err.message,
+      detail: 'Proxy failed to process request'
+    }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });
