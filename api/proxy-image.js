@@ -3,7 +3,7 @@ const DOUBAO_KEY = process.env.DOUBAO_KEY || 'ark-709df38e-1e1e-45eb-b1bf-9ff817
 
 export const config = {
   runtime: 'nodejs',
-  maxDuration: 120,
+  maxDuration: 300, // 5分钟，适配豆包 2K 图生成耗时
 };
 
 export default async function handler(request) {
