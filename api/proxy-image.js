@@ -3,18 +3,30 @@ const DOUBAO_KEY = process.env.DOUBAO_KEY || 'ark-709df38e-1e1e-45eb-b1bf-9ff817
 
 export const config = {
   runtime: 'nodejs',
-  maxDuration: 300, // 5分钟，适配豆包 2K 图生成耗时
+  maxDuration: 60,
 };
 
+/**
+ * 代理豆包图像生成 API
+ * POST: 提交生图请求，转发到豆包 API 并返回结果
+ */
 export default async function handler(request) {
   try {
+    // 只处理 POST 请求
+    if (request.method !== 'POST') {
+      return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+        status: 405,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
     const body = await request.json();
 
     console.log('Image API Request:', JSON.stringify({
       model: body.model,
       promptLength: body.prompt?.length,
       hasImage: !!body.image,
-      imageSize: body.image ? body.image.length : 0,
+      size: body.size,
     }));
 
     const response = await fetch(IMAGE_API, {

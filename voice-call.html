@@ -1177,6 +1177,35 @@
         position: relative;
     }
 
+    /* 生图加载 & 错误状态样式 */
+    .image-loading {
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        height: 100%; gap: 16px; color: var(--text-muted); font-size: 15px;
+    }
+    .loading-spinner {
+        width: 40px; height: 40px; border: 3px solid var(--border);
+        border-top-color: var(--accent); border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-progress {
+        font-size: 13px; color: var(--accent-light);
+    }
+    .image-error {
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        height: 100%; gap: 12px; padding: 32px; text-align: center;
+    }
+    .error-icon { font-size: 48px; }
+    .error-text { font-size: 18px; font-weight: 600; color: var(--text); }
+    .error-hint { font-size: 14px; color: var(--text-secondary); max-width: 400px; line-height: 1.6; }
+    .btn-retry {
+        margin-top: 8px; padding: 10px 28px; border: 1px solid var(--accent);
+        background: var(--accent); color: var(--white); border-radius: 8px;
+        cursor: pointer; font-size: 14px; font-weight: 500;
+        transition: all 0.2s;
+    }
+    .btn-retry:hover { background: var(--accent-light); border-color: var(--accent-light); }
+
     #room-svg {
         width: 100%; height: 100%;
     }
@@ -3025,6 +3054,7 @@ function buildImagePrompt() {
 
 /**
  * 调用豆包文生图API生成房间图片
+ * 使用 512x512 分辨率（1024 的一半），确保在 Vercel Hobby 免费版 60 秒限制内完成
  */
 async function generateRoomImage() {
     const canvas = document.getElementById('design-canvas');
@@ -3043,18 +3073,31 @@ async function generateRoomImage() {
             prompt: prompt,
             sequential_image_generation: 'disabled',
             response_format: 'url',
-            size: '2K',
+            size: '1024x1024', // 最小有效尺寸，比 2K 快约 2-3 倍
             stream: false,
             watermark: true,
             seed: Math.floor(Math.random() * 999999)
         };
 
-        // 图生图：直接用家具截图的 URL（已部署在 Vercel 上）
+        // 如果有匹配的家具，将截图作为参考图加入（图生图）
         if (matchedFurnitureIds.length > 0) {
             const f = FURNITURE_LIBRARY.find(fi => fi.id === matchedFurnitureIds[0]);
             if (f && f.screenshot) {
-                requestBody.image = f.screenshot;
-                console.log('图生图参考图 URL:', f.screenshot);
+                try {
+                    const resp = await fetch(f.screenshot);
+                    if (resp.ok) {
+                        const blob = await resp.blob();
+                        const base64 = await new Promise(resolve => {
+                            const reader = new FileReader();
+                            reader.onloadend = () => resolve(reader.result);
+                            reader.readAsDataURL(blob);
+                        });
+                        requestBody.image = base64;
+                        console.log('图生图参考图已加入 (base64)');
+                    }
+                } catch(e) {
+                    console.warn('家具截图加载失败:', f.screenshot, e);
+                }
             }
         }
 
@@ -3062,7 +3105,7 @@ async function generateRoomImage() {
             model: requestBody.model,
             promptLen: requestBody.prompt?.length,
             hasImage: !!requestBody.image,
-            imageUrl: requestBody.image
+            size: requestBody.size
         }));
 
         const resp = await fetch(DOUBAO_IMAGE_API, {
@@ -3070,12 +3113,6 @@ async function generateRoomImage() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(requestBody)
         });
-
-        const contentType = resp.headers.get('content-type') || '';
-        if (!contentType.includes('application/json')) {
-            const text = await resp.text();
-            throw new Error(`API ${resp.status}: 返回的不是JSON - ${text.substring(0, 200)}`);
-        }
 
         const respData = await resp.json();
 
