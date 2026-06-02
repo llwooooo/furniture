@@ -2185,15 +2185,51 @@
             <span class="price-unit">起</span>
         </div>
 
-        <div class="detail-section" id="furniture-3d-params">
-            <!-- Dynamic params will be injected here -->
+        <div class="detail-section">
+            <h4>尺寸参数</h4>
+            <div class="detail-param-row">
+                <span class="param-label">座宽</span>
+                <input type="range" id="param-seatWidth" min="0.5" max="1.5" step="0.01" value="0.85" oninput="onFurnitureParamChange('seatWidth', this.value)">
+                <span class="param-value-display" id="param-seatWidth-val">85cm</span>
+            </div>
+            <div class="detail-param-row">
+                <span class="param-label">座深</span>
+                <input type="range" id="param-seatDepth" min="0.4" max="1.2" step="0.01" value="0.75" oninput="onFurnitureParamChange('seatDepth', this.value)">
+                <span class="param-value-display" id="param-seatDepth-val">75cm</span>
+            </div>
+            <div class="detail-param-row">
+                <span class="param-label">座高</span>
+                <input type="range" id="param-seatHeight" min="0.3" max="0.6" step="0.01" value="0.42" oninput="onFurnitureParamChange('seatHeight', this.value)">
+                <span class="param-value-display" id="param-seatHeight-val">42cm</span>
+            </div>
+            <div class="detail-param-row">
+                <span class="param-label">靠背高度</span>
+                <input type="range" id="param-backHeight" min="0.5" max="1.2" step="0.01" value="0.9" oninput="onFurnitureParamChange('backHeight', this.value)">
+                <span class="param-value-display" id="param-backHeight-val">90cm</span>
+            </div>
+            <div class="detail-param-row">
+                <span class="param-label">前后脚距离</span>
+                <input type="range" id="param-legSpan" min="6" max="12" step="0.1" value="9" oninput="onFurnitureParamChange('legSpan', this.value)">
+                <span class="param-value-display" id="param-legSpan-val">9.0m</span>
+            </div>
         </div>
 
         <div class="detail-section">
-            <h4>颜色</h4>
-            <div class="color-section">
+            <h4>材质与颜色</h4>
+            <select class="detail-select" id="param-material" onchange="onFurnitureMaterialChange(this.value)">
+                <option value="fabric">布艺毛圈</option>
+                <option value="leather">真皮</option>
+                <option value="velvet">天鹅绒</option>
+            </select>
+            <div class="color-section" style="margin-top:12px">
+                <div class="color-label">主体颜色</div>
                 <div class="color-options" id="furniture-colors">
-                    <!-- Dynamic color options -->
+                    <div class="color-opt active" data-color="#83929e" style="background:#83929e" onclick="selectFurnitureColor(this)"></div>
+                    <div class="color-opt" data-color="#C07551" style="background:#C07551" onclick="selectFurnitureColor(this)"></div>
+                    <div class="color-opt" data-color="#DDBE5F" style="background:#DDBE5F" onclick="selectFurnitureColor(this)"></div>
+                    <div class="color-opt" data-color="#405D94" style="background:#405D94" onclick="selectFurnitureColor(this)"></div>
+                    <div class="color-opt" data-color="#E8E8E8" style="background:#E8E8E8" onclick="selectFurnitureColor(this)"></div>
+                    <div class="color-opt" data-color="#2D3748" style="background:#2D3748" onclick="selectFurnitureColor(this)"></div>
                 </div>
             </div>
         </div>
@@ -2354,11 +2390,12 @@ function buildGreyChairModel(scene, params) {
     const seatWidth = (p.seatWidth || 0.85);
     const seatDepth = (p.seatDepth || 0.75);
     const backHeight = (p.backHeight || 0.9);
+    const legSpan = (p.legSpan || 9.0);
     const color = p.color || '#83929e';
 
     // 材质
     const fabricTexture = createBoucleTexture(color);
-    const sofaMaterial = new THREE.MeshStandardMaterial({
+    const chairMaterial = new THREE.MeshStandardMaterial({
         color: new THREE.Color(color),
         roughness: 1.0,
         metalness: 0.0,
@@ -2366,20 +2403,25 @@ function buildGreyChairModel(scene, params) {
         bumpScale: 0.04,
     });
 
-    // 轮廓曲线
+    // 根据参数动态调整轮廓
+    const legSpanFactor = legSpan / 9.0;
     const shape = new THREE.Shape();
-    shape.moveTo(4.4, 0);
-    shape.lineTo(4.0, 2.6);
-    shape.bezierCurveTo(3.8, 4.0, 2.0, 3.8, 0.5, 3.4);
+
+    // 外部轮廓
+    shape.moveTo(4.4 * legSpanFactor, 0);
+    shape.lineTo(4.0 * legSpanFactor, 2.6);
+    shape.bezierCurveTo(3.8 * legSpanFactor, 4.0, 2.0 * legSpanFactor, 3.8, 0.5, 3.4);
     shape.bezierCurveTo(-1.0, 3.0, -2.0, 3.6, -2.4, 5.2);
-    shape.bezierCurveTo(-2.8, 7.2, -3.6, 7.8, -4.4, 7.2);
-    shape.bezierCurveTo(-5.0, 6.6, -4.8, 4.0, -4.6, 2.0);
+    shape.bezierCurveTo(-2.8, 7.2 * (backHeight / 0.9), -3.6, 7.8 * (backHeight / 0.9), -4.4, 7.2 * (backHeight / 0.9));
+    shape.bezierCurveTo(-5.0, 6.6 * (backHeight / 0.9), -4.8, 4.0, -4.6, 2.0);
     shape.lineTo(-4.4, 0);
+
+    // 内部轮廓
     shape.lineTo(-2.2, 0);
     shape.lineTo(-2.6, 3.0);
     shape.bezierCurveTo(-2.8, 4.0, -1.0, 1.6, 0.5, 1.6);
     shape.bezierCurveTo(2.0, 1.6, 2.6, 2.0, 2.8, 0);
-    shape.lineTo(4.4, 0);
+    shape.lineTo(4.4 * legSpanFactor, 0);
 
     const extrudeSettings = {
         steps: 2,
@@ -2393,7 +2435,7 @@ function buildGreyChairModel(scene, params) {
     };
 
     const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
-    const mesh = new THREE.Mesh(geometry, sofaMaterial);
+    const mesh = new THREE.Mesh(geometry, chairMaterial);
     mesh.position.z = -extrudeSettings.depth / 2;
     mesh.castShadow = true;
     mesh.receiveShadow = true;
@@ -2404,6 +2446,19 @@ function buildGreyChairModel(scene, params) {
     mesh.scale.set(scaleX, scaleY, 1);
 
     scene.add(mesh);
+
+    // 底脚
+    const baseMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
+    const baseWidth = extrudeSettings.depth + extrudeSettings.bevelSize * 2 - 0.4;
+
+    const frontBase = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.08, baseWidth), baseMat);
+    frontBase.position.set(3.6 * legSpanFactor, 0.04, 0);
+    scene.add(frontBase);
+
+    const backBase = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.08, baseWidth), baseMat);
+    backBase.position.set(-3.3, 0.04, 0);
+    scene.add(backBase);
+
     return mesh;
 }
 
@@ -2442,19 +2497,27 @@ function initThreeScene() {
     const container = document.getElementById('three-container');
     if (!container || typeof THREE === 'undefined') {
         console.error('three-container not found or THREE not loaded');
-        return;
+        return false;
+    }
+
+    // 确保容器有尺寸
+    if (container.clientWidth === 0 || container.clientHeight === 0) {
+        console.warn('three-container has no size, retrying...');
+        setTimeout(initThreeScene, 100);
+        return false;
     }
 
     // 清理旧场景
     if (threeRenderer) {
-        container.innerHTML = '';
+        if (threeRenderer.domElement.parentNode) {
+            threeRenderer.domElement.parentNode.removeChild(threeRenderer.domElement);
+        }
         if (threeAnimFrameId) cancelAnimationFrame(threeAnimFrameId);
         threeRenderer = null;
     }
 
-    // Use container dimensions or default size
-    const w = container.clientWidth || 800;
-    const h = container.clientHeight || 600;
+    const w = container.clientWidth;
+    const h = container.clientHeight;
 
     threeScene = new THREE.Scene();
     threeScene.background = new THREE.Color(0xf4f4f4);
@@ -2470,16 +2533,14 @@ function initThreeScene() {
     threeRenderer.toneMappingExposure = 1.05;
     container.appendChild(threeRenderer.domElement);
 
-    if (typeof THREE !== 'undefined' && typeof THREE.OrbitControls === 'function') {
+    if (typeof THREE.OrbitControls === 'function') {
         threeControls = new THREE.OrbitControls(threeCamera, threeRenderer.domElement);
-    } else {
-        console.warn('OrbitControls not available');
-        threeControls = null;
-    }
-    if (threeControls) {
         threeControls.enableDamping = true;
         threeControls.dampingFactor = 0.05;
         threeControls.target.set(-0.5, 3.5, 0);
+    } else {
+        console.warn('OrbitControls not available');
+        threeControls = null;
     }
 
     // 灯光
@@ -2510,6 +2571,7 @@ function initThreeScene() {
     threeScene.add(ground);
 
     window.addEventListener('resize', onThreeResize);
+    return true;
 }
 
 function onThreeResize() {
@@ -2532,10 +2594,11 @@ function animateThree() {
 //  3D 家具加载
 // ================================================================
 function initFurniture3D(furnitureId) {
-    console.log('initFurniture3D called with:', furnitureId);
     const furniture = FURNITURE_LIBRARY.find(f => f.id === furnitureId);
-    if (!furniture) { console.error('Furniture not found:', furnitureId); return; }
-    console.log('Furniture found:', furniture.name, furniture.params);
+    if (!furniture) {
+        console.error('Furniture not found:', furnitureId);
+        return;
+    }
 
     selectedFurnitureId = furnitureId;
 
@@ -2543,13 +2606,23 @@ function initFurniture3D(furnitureId) {
     document.getElementById('furniture-3d-title').textContent = furniture.name;
     document.getElementById('furniture-3d-price').textContent = '¥' + furniture.basePrice.toLocaleString();
 
-    // 初始化 Three.js 场景
-    initThreeScene();
+    // 更新参数控件的值
+    updateParamSliders(furniture.params);
+
+    // 更新颜色选项
+    updateColorSelection(furniture.params.color);
+
+    // 初始化 Three.js 场景（带重试）
+    const sceneReady = initThreeScene();
+    if (!sceneReady) {
+        // 如果场景未准备好，延迟重试
+        setTimeout(() => initFurniture3D(furnitureId), 200);
+        return;
+    }
 
     // 构建 3D 模型
     if (threeFurnitureGroup) {
         threeScene.remove(threeFurnitureGroup);
-        threeFurnitureGroup = null;
     }
     threeFurnitureGroup = new THREE.Group();
     threeScene.add(threeFurnitureGroup);
@@ -2557,57 +2630,76 @@ function initFurniture3D(furnitureId) {
     // 调用家具的 buildModel 函数
     furniture.buildModel(threeFurnitureGroup, furniture.params);
 
-    // 生成参数控件
-    buildFurnitureParamsUI(furniture);
-
-    // 生成颜色选项
-    buildFurnitureColorUI(furniture);
-
     // 启动渲染循环
     animateThree();
 }
 
-function buildFurnitureParamsUI(furniture) {
-    const container = document.getElementById('furniture-3d-params');
-    if (!container) { console.error('furniture-3d-params container not found'); return; }
-    let html = '<h4>参数调整</h4>';
-    if (!furniture || !furniture.params) {
-        html += '<p style="color:#999">参数加载中...</p>';
-        container.innerHTML = html;
-        return;
-    }
-    const paramNames = {
-        seatHeight: { label: '座高', min: 0.3, max: 0.6, step: 0.01, unit: 'm' },
-        seatWidth: { label: '座宽', min: 0.5, max: 1.2, step: 0.01, unit: 'm' },
-        seatDepth: { label: '座深', min: 0.4, max: 1.0, step: 0.01, unit: 'm' },
-        backHeight: { label: '靠背高度', min: 0.5, max: 1.2, step: 0.01, unit: 'm' },
+function updateParamSliders(params) {
+    const mappings = {
+        seatWidth: 'param-seatWidth',
+        seatDepth: 'param-seatDepth',
+        seatHeight: 'param-seatHeight',
+        backHeight: 'param-backHeight',
+        legSpan: 'param-legSpan'
     };
-
-    for (const [key, cfg] of Object.entries(paramNames)) {
-        const val = furniture.params[key];
-        if (val === undefined) continue;
-        html += `<div class="detail-param-row">
-            <span class="param-label">${cfg.label}</span>
-            <input type="range" id="param-${key}" min="${cfg.min}" max="${cfg.max}" step="${cfg.step}" value="${val}" oninput="onFurnitureParamChange('${key}', this.value)">
-            <span class="param-value-display" id="param-${key}-val">${(val * 100).toFixed(0)}${cfg.unit === 'm' ? 'cm' : cfg.unit}</span>
-        </div>`;
+    for (const [key, id] of Object.entries(mappings)) {
+        if (params[key] !== undefined) {
+            const slider = document.getElementById(id);
+            const display = document.getElementById(id + '-val');
+            if (slider) slider.value = params[key];
+            if (display) {
+                if (key === 'legSpan') {
+                    display.textContent = parseFloat(params[key]).toFixed(1) + 'm';
+                } else {
+                    display.textContent = (params[key] * 100).toFixed(0) + 'cm';
+                }
+            }
+        }
     }
-    container.innerHTML = html;
+}
+
+function updateColorSelection(color) {
+    document.querySelectorAll('#furniture-colors .color-opt').forEach(el => {
+        el.classList.toggle('active', el.dataset.color === color);
+    });
 }
 
 function onFurnitureParamChange(key, value) {
     const furniture = FURNITURE_LIBRARY.find(f => f.id === selectedFurnitureId);
     if (!furniture) return;
 
-    furniture.params[key] = parseFloat(value);
-    const displayVal = key === 'seatHeight' || key === 'seatWidth' || key === 'seatDepth' || key === 'backHeight'
-        ? (parseFloat(value) * 100).toFixed(0) + 'cm'
-        : value;
-    const valEl = document.getElementById(`param-${key}-val`);
-    if (valEl) valEl.textContent = displayVal;
+    const numVal = parseFloat(value);
+    furniture.params[key] = numVal;
 
-    // 重新构建 3D 模型
+    // 更新显示值
+    const display = document.getElementById('param-' + key + '-val');
+    if (display) {
+        if (key === 'legSpan') {
+            display.textContent = numVal.toFixed(1) + 'm';
+        } else {
+            display.textContent = (numVal * 100).toFixed(0) + 'cm';
+        }
+    }
+
     rebuildFurnitureModel();
+}
+
+function onFurnitureMaterialChange(material) {
+    const furniture = FURNITURE_LIBRARY.find(f => f.id === selectedFurnitureId);
+    if (!furniture) return;
+    furniture.params.material = material;
+    rebuildFurnitureModel();
+}
+
+function selectFurnitureColor(el) {
+    document.querySelectorAll('#furniture-colors .color-opt').forEach(e => e.classList.remove('active'));
+    el.classList.add('active');
+    const color = el.dataset.color;
+    const furniture = FURNITURE_LIBRARY.find(f => f.id === selectedFurnitureId);
+    if (furniture) {
+        furniture.params.color = color;
+        rebuildFurnitureModel();
+    }
 }
 
 function rebuildFurnitureModel() {
@@ -2628,23 +2720,7 @@ function rebuildFurnitureModel() {
     if (furniture) furniture.buildModel(threeFurnitureGroup, furniture.params);
 }
 
-function buildFurnitureColorUI(furniture) {
-    const container = document.getElementById('furniture-colors');
-    if (!container) return;
-    const colors = [
-        { color: '#83929e', label: '冷灰蓝' },
-        { color: '#B28C56', label: '暖棕色' },
-        { color: '#DDBE5F', label: '浅金色' },
-        { color: '#405D94', label: '深蓝' },
-        { color: '#E8E8E8', label: '浅灰' },
-        { color: '#2D3748', label: '深灰' },
-    ];
-    const currentColor = furniture.params.color || colors[0].color;
 
-    container.innerHTML = colors.map(c =>
-        `<div class="color-opt${c.color === currentColor ? ' active' : ''}" data-color="${c.color}" style="background:${c.color}" title="${c.label}" onclick="selectFurnitureColor(this)"></div>`
-    ).join('');
-}
 
 function selectFurnitureColor(el) {
     document.querySelectorAll('#furniture-colors .color-opt').forEach(e => e.classList.remove('active'));
@@ -2721,7 +2797,12 @@ function renderFurnitureIcons() {
 function viewFurniture3D(furnitureId) {
     document.getElementById('page-design').style.display = 'none';
     document.getElementById('page-table-detail').style.display = 'flex';
-    setTimeout(() => initFurniture3D(furnitureId), 100);
+    // 等待 DOM 渲染完成后再初始化 3D 场景
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            initFurniture3D(furnitureId);
+        });
+    });
 }
 
 // 兼容旧版调用
@@ -2968,8 +3049,8 @@ async function generateRoomImage() {
             seed: Math.floor(Math.random() * 999999)
         };
 
-        // 图生图：如果有匹配的家具，将截图作为参考图加入
-        // Doubao Seedream API: image 字段直接传 base64 字符串或 URL
+        // 如果有匹配的家具，将截图作为参考图加入（图生图）
+        // doubao-seedream API 使用 `image` 字段，直接传 base64 字符串或 URL
         if (matchedFurnitureIds.length > 0) {
             const f = FURNITURE_LIBRARY.find(fi => fi.id === matchedFurnitureIds[0]);
             if (f && f.screenshot) {
@@ -2991,11 +3072,10 @@ async function generateRoomImage() {
             }
         }
 
-        console.log('发送生图请求:', JSON.stringify({
+        console.log('生图请求:', JSON.stringify({
             model: requestBody.model,
             promptLen: requestBody.prompt?.length,
-            hasImage: !!requestBody.image,
-            imageSize: requestBody.image ? requestBody.image.length : 0
+            hasImage: !!requestBody.image
         }));
 
         const resp = await fetch(DOUBAO_IMAGE_API, {
@@ -3004,21 +3084,11 @@ async function generateRoomImage() {
             body: JSON.stringify(requestBody)
         });
 
-        const respText = await resp.text();
-        console.log('生图响应状态:', resp.status);
-        console.log('生图响应内容:', respText.substring(0, 500));
-
-        let respData;
-        try {
-            respData = JSON.parse(respText);
-        } catch (e) {
-            console.error('响应不是有效JSON:', respText.substring(0, 500));
-            throw new Error(`服务器返回了非JSON响应 (${resp.status}): ${respText.substring(0, 200)}`);
-        }
+        const respData = await resp.json();
 
         if (!resp.ok) {
             console.error('生图 API 错误详情:', JSON.stringify(respData, null, 2));
-            throw new Error(`API ${resp.status}: ${respData.error?.message || respData.message || respText.substring(0, 200)}`);
+            throw new Error(`API ${resp.status}: ${respData.error?.message || respData.message || JSON.stringify(respData).substring(0, 300)}`);
         }
 
         const imageUrl = respData.data?.[0]?.url || respData.output_image_url;
