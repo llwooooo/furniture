@@ -2991,17 +2991,34 @@ async function generateRoomImage() {
             }
         }
 
+        console.log('发送生图请求:', JSON.stringify({
+            model: requestBody.model,
+            promptLen: requestBody.prompt?.length,
+            hasImage: !!requestBody.image,
+            imageSize: requestBody.image ? requestBody.image.length : 0
+        }));
+
         const resp = await fetch(DOUBAO_IMAGE_API, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(requestBody)
         });
 
-        const respData = await resp.json();
+        const respText = await resp.text();
+        console.log('生图响应状态:', resp.status);
+        console.log('生图响应内容:', respText.substring(0, 500));
+
+        let respData;
+        try {
+            respData = JSON.parse(respText);
+        } catch (e) {
+            console.error('响应不是有效JSON:', respText.substring(0, 500));
+            throw new Error(`服务器返回了非JSON响应 (${resp.status}): ${respText.substring(0, 200)}`);
+        }
 
         if (!resp.ok) {
             console.error('生图 API 错误详情:', JSON.stringify(respData, null, 2));
-            throw new Error(`API ${resp.status}: ${respData.error?.message || respData.message || JSON.stringify(respData).substring(0, 300)}`);
+            throw new Error(`API ${resp.status}: ${respData.error?.message || respData.message || respText.substring(0, 200)}`);
         }
 
         const imageUrl = respData.data?.[0]?.url || respData.output_image_url;
