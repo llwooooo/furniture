@@ -3049,33 +3049,20 @@ async function generateRoomImage() {
             seed: Math.floor(Math.random() * 999999)
         };
 
-        // 如果有匹配的家具，将截图作为参考图加入（图生图）
-        // doubao-seedream API 使用 `image` 字段，直接传 base64 字符串或 URL
+        // 图生图：直接用家具截图的 URL（已部署在 Vercel 上）
         if (matchedFurnitureIds.length > 0) {
             const f = FURNITURE_LIBRARY.find(fi => fi.id === matchedFurnitureIds[0]);
             if (f && f.screenshot) {
-                try {
-                    const resp = await fetch(f.screenshot);
-                    if (resp.ok) {
-                        const blob = await resp.blob();
-                        const base64 = await new Promise(resolve => {
-                            const reader = new FileReader();
-                            reader.onloadend = () => resolve(reader.result);
-                            reader.readAsDataURL(blob);
-                        });
-                        requestBody.image = base64;
-                        console.log('图生图参考图已加入 (base64)');
-                    }
-                } catch(e) {
-                    console.warn('家具截图加载失败:', f.screenshot, e);
-                }
+                requestBody.image = f.screenshot;
+                console.log('图生图参考图 URL:', f.screenshot);
             }
         }
 
         console.log('生图请求:', JSON.stringify({
             model: requestBody.model,
             promptLen: requestBody.prompt?.length,
-            hasImage: !!requestBody.image
+            hasImage: !!requestBody.image,
+            imageUrl: requestBody.image
         }));
 
         const resp = await fetch(DOUBAO_IMAGE_API, {
@@ -3083,6 +3070,12 @@ async function generateRoomImage() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(requestBody)
         });
+
+        const contentType = resp.headers.get('content-type') || '';
+        if (!contentType.includes('application/json')) {
+            const text = await resp.text();
+            throw new Error(`API ${resp.status}: 返回的不是JSON - ${text.substring(0, 200)}`);
+        }
 
         const respData = await resp.json();
 

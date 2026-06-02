@@ -3,7 +3,7 @@ const DOUBAO_KEY = process.env.DOUBAO_KEY || 'ark-709df38e-1e1e-45eb-b1bf-9ff817
 
 export const config = {
   runtime: 'nodejs',
-  maxDuration: 300,
+  maxDuration: 120,
 };
 
 export default async function handler(request) {
@@ -12,10 +12,9 @@ export default async function handler(request) {
 
     console.log('Image API Request:', JSON.stringify({
       model: body.model,
-      promptLen: body.prompt?.length,
+      promptLength: body.prompt?.length,
       hasImage: !!body.image,
       imageSize: body.image ? body.image.length : 0,
-      size: body.size,
     }));
 
     const response = await fetch(IMAGE_API, {
@@ -38,11 +37,8 @@ export default async function handler(request) {
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (err) {
-    console.error('Proxy error:', err.message);
-    return new Response(JSON.stringify({
-      error: err.message,
-      detail: 'Proxy failed to process request'
-    }), {
+    console.error('Proxy error:', err);
+    return new Response(JSON.stringify({ error: err.message }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });
