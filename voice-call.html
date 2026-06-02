@@ -2650,48 +2650,34 @@ function selectFurnitureColor(el) {
 //  家具匹配
 // ================================================================
 async function matchFurniture() {
-    // Default: show all furniture, AI matching as optimization
     matchedFurnitureIds = FURNITURE_LIBRARY.map(f => f.id);
     renderFurnitureIcons();
-
     if (FURNITURE_LIBRARY.length === 0) return;
-
-    const prompt = `You are a furniture matching expert. Match the most suitable furniture from the library based on user needs.
-
-User needs:
-${Object.entries(collectedParams).filter(([k,v]) => v && v !== '--').map(([k,v]) => `${k}: ${v}`).join('
-')}
-
-Furniture library:
-${FURNITURE_LIBRARY.map(f => `- ${f.id}: ${f.name} (${f.category}) - ${f.description}`).join('
-')}
-
-Return JSON only: {"matches": ["furnitureId1", "furnitureId2"]}.
-If no match, return {"matches": []}.`;
-
+    var collected = Object.entries(collectedParams).filter(([k,v]) => v && v !== '--').map(([k,v]) => k + ': ' + v).join('\n');
+    var libStr = FURNITURE_LIBRARY.map(f => '  ' + f.id + ': ' + f.name + ' (' + f.category + ') - ' + f.description).join('\n');
+    var prompt = 'You are a furniture matching expert. Match suitable furniture from the library based on user needs.' + '\n\nUser needs:\n' + collected + '\n\nFurniture library:\n' + libStr + '\n\nReturn JSON only: {"matches": ["furnitureId1"]}. If no match, return {"matches": []}.';
     try {
-        const reply = await callDoubao([
+        var reply = await callDoubao([
             { role: 'system', content: 'Return JSON only. Format: {"matches": ["id1","id2"]}.' },
             { role: 'user', content: prompt }
         ]);
-        const jsonMatch = reply.match(/\{[\s\S]*\}/);
+        var jsonMatch = reply.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
-            const parsed = JSON.parse(jsonMatch[0]);
+            var parsed = JSON.parse(jsonMatch[0]);
             if (parsed.matches && Array.isArray(parsed.matches) && parsed.matches.length > 0) {
-                matchedFurnitureIds = parsed.matches.filter(id => FURNITURE_LIBRARY.find(f => f.id === id));
-                if (matchedFurnitureIds.length > 0) {
+                var valid = parsed.matches.filter(id => FURNITURE_LIBRARY.find(f => f.id === id));
+                if (valid.length > 0) {
+                    matchedFurnitureIds = valid;
                     console.log('AI matched:', matchedFurnitureIds);
                     renderFurnitureIcons();
                     return;
                 }
             }
         }
-        console.log('AI returned no valid match, showing all furniture');
+        console.log('AI returned no valid match, showing all');
     } catch (e) {
-        console.warn('AI matching failed, showing all furniture:', e);
+        console.warn('AI matching failed:', e);
     }
-
-    // Always show all furniture as fallback
     matchedFurnitureIds = FURNITURE_LIBRARY.map(f => f.id);
     renderFurnitureIcons();
 }
