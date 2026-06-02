@@ -10,7 +10,6 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.157.0/build/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.157.0/examples/js/controls/OrbitControls.js" onerror="console.warn('OrbitControls CDN failed, will use inline fallback')"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.157.0/examples/js/loaders/GLTFLoader.js" onerror="console.warn('GLTFLoader CDN failed, procedural table will be used')"></script>
-    <script src="models.js"></script>
     <script>
     // Inline OrbitControls fallback if CDN fails
     if (typeof THREE !== 'undefined' && typeof THREE.OrbitControls !== 'function') {
@@ -2651,38 +2650,49 @@ function selectFurnitureColor(el) {
 //  家具匹配
 // ================================================================
 async function matchFurniture() {
-    matchedFurnitureIds = [];
+    // Default: show all furniture, AI matching as optimization
+    matchedFurnitureIds = FURNITURE_LIBRARY.map(f => f.id);
+    renderFurnitureIcons();
 
     if (FURNITURE_LIBRARY.length === 0) return;
 
-    const prompt = `你是一个家具匹配专家。根据以下用户需求，从家具库中匹配最合适的家具。
+    const prompt = `You are a furniture matching expert. Match the most suitable furniture from the library based on user needs.
 
-用户需求：
-${Object.entries(collectedParams).filter(([k,v]) => v && v !== '--').map(([k,v]) => `${k}: ${v}`).join('\n')}
+User needs:
+${Object.entries(collectedParams).filter(([k,v]) => v && v !== '--').map(([k,v]) => `${k}: ${v}`).join('
+')}
 
-家具库：
-${FURNITURE_LIBRARY.map(f => `- ${f.id}: ${f.name} (${f.category}) - ${f.description}`).join('\n')}
+Furniture library:
+${FURNITURE_LIBRARY.map(f => `- ${f.id}: ${f.name} (${f.category}) - ${f.description}`).join('
+')}
 
-请返回匹配结果，格式为JSON：{"matches": ["家具ID1", "家具ID2"]}
-如果没有合适的家具，返回空数组。`;
+Return JSON only: {"matches": ["furnitureId1", "furnitureId2"]}.
+If no match, return {"matches": []}.`;
 
     try {
         const reply = await callDoubao([
-            { role: 'system', content: '你是一个JSON返回助手。只返回JSON，不要返回其他内容。' },
+            { role: 'system', content: 'Return JSON only. Format: {"matches": ["id1","id2"]}.' },
             { role: 'user', content: prompt }
         ]);
         const jsonMatch = reply.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
             const parsed = JSON.parse(jsonMatch[0]);
-            matchedFurnitureIds = parsed.matches || [];
+            if (parsed.matches && Array.isArray(parsed.matches) && parsed.matches.length > 0) {
+                matchedFurnitureIds = parsed.matches.filter(id => FURNITURE_LIBRARY.find(f => f.id === id));
+                if (matchedFurnitureIds.length > 0) {
+                    console.log('AI matched:', matchedFurnitureIds);
+                    renderFurnitureIcons();
+                    return;
+                }
+            }
         }
+        console.log('AI returned no valid match, showing all furniture');
     } catch (e) {
-        console.warn('家具匹配失败:', e);
-        // 回退：显示全部家具
-        matchedFurnitureIds = FURNITURE_LIBRARY.map(f => f.id);
+        console.warn('AI matching failed, showing all furniture:', e);
     }
 
-    // 渲染家具图标栏
+    // Always show all furniture as fallback
+    matchedFurnitureIds = FURNITURE_LIBRARY.map(f => f.id);
     renderFurnitureIcons();
 }
 
